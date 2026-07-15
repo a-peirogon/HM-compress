@@ -1,4 +1,4 @@
-# HMcompress
+# HM-compress
 
 > Mathematics (and possibly knowledge in general) can be understood as a hierarchy of macros that encapsulate proofs and definitions.
 
