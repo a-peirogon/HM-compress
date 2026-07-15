@@ -4,4 +4,4 @@
 
 A pure C++23 research library implementing the algebraic model from
 **"Compression is All You Need: Modeling Mathematics"**
-(Aksenov, Bodnia, Freedman, Mulligan, arXiv:2603.20396). This library implements the monoid models (Section 2) without any dependency on Lean or MathLib. It uses only the C++23 standard library.
+(Aksenov, Bodnia, Freedman, Mulligan, arXiv:2603.20396). This library implements the monoid models (Section 2) without any dependency on Lean or MathLib.
