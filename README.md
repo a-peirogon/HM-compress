@@ -18,5 +18,5 @@ generador adicional) cuyo uso comprime la cadena.
   superarla (Teorema 5).
 
 El paper argumenta que MathLib (y por extensión, la matemática humana) se
-comporta como $A_n$, no como $F_n$ — a pesar de que las pruebas formales
+comporta como $A_n$, no como $F_n$, a pesar de que las pruebas formales
 son, en principio, cadenas donde el orden importa.
