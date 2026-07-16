@@ -1,7 +1,7 @@
 # HM-compress
 
 Implementación en C++20 del modelo algebraico expuesto en
-["Compression Is All You Need: Modeling Mathematics"](.) (Aksenov, Bodnia,
+["Compression Is All You Need: Modeling Mathematics"](https://arxiv.org/pdf/2603.20396) (Aksenov, Bodnia,
 Freedman, Mulligan, 2026). La matemática humana (HM) es comprimible mediante definiciones anidadas
 jerárquicamente. El paper modela esto con **monoides**: una deducción es
 una cadena de símbolos primitivos; una definición es una *macro* (un
