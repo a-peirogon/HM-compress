@@ -1,160 +1,60 @@
-#include <compression_math.hpp>
-#include <print>
-#include <vector>
-#include <cmath>
+// src/main.cpp
+//
+// HM-compress -- v1 driver.
+//
+// Runs Theorem 1 (place notation) and Theorem 7 (finite macro set) side by
+// side, illustrating exponential vs. linear expansion. See examples/ for
+// theorem-by-theorem demos and tests/ for correctness checks against the
+// closed-form bounds.
 
-using namespace compression_math;
+#include <iomanip>
+#include <iostream>
 
-// ============================================================================
-// Demo: Verification of Theorems from Section 2
-// ============================================================================
+#include "expansion/coin_dp.hpp"
+#include "expansion/expansion_function.hpp"
+#include "macros/macro_set.hpp"
 
-void demo_theorem1_place_notation() {
-    std::println("\n=== Theorem 1: Place Notation (Exponential Expansion) ===");
-    constexpr std::uint64_t base = 10;
-    auto macros = factory::place_notation_macros<1>(base);
-    ExpansionAnalyzer<FreeAbelianMonoid<1>> analyzer(&macros);
+using namespace hmcompress;
 
-    std::println("Macro set: M = {{ 10^j : j >= 1 }} (logarithmic density)");
-    std::println("Density at r=1000: {:.6f}", macros.density(1000));
-    std::println("Density at r=1000000: {:.6f}", macros.density(1000000));
+namespace {
 
-    std::println("\nExpansion function f(s):");
-    std::println("{:>4} {:>12} {:>12} {:>12}", "s", "f(s)", "base^{s/9}", "ratio");
-    for (std::uint64_t s = 1; s <= 30; ++s) {
-        std::uint64_t f = analyzer.expansion_function(s);
-        double expected = std::pow(static_cast<double>(base), static_cast<double>(s) / 9.0);
-        std::println("{:4} {:12} {:12.1f} {:12.3f}", s, f, expected, 
-                     f > 0 ? static_cast<double>(f) / expected : 0.0);
-    }
-
-    // Verify exponential growth: f(s) ~ b^{s/(b-1)} for A_1, n=1
-    std::println("\nVerifying f(s) grows exponentially...");
-    std::uint64_t s1 = 20, s2 = 25;
-    std::uint64_t f1 = analyzer.expansion_function(s1);
-    std::uint64_t f2 = analyzer.expansion_function(s2);
-    double ratio = static_cast<double>(f2) / static_cast<double>(f1);
-    double expected_ratio = std::pow(base, (s2 - s1) / 9.0);
-    std::println("f({})/f({}) = {:.3f}, expected ~ b^{}/9 = {:.3f}", 
-                 s2, s1, ratio, s2 - s1, expected_ratio);
+void print_header(const std::string& title) {
+    std::cout << "\n=== " << title << " ===\n";
 }
 
-void demo_theorem3_waring() {
-    std::println("\n=== Theorem 3: Waring / Polynomial Density (Infinite Expansion) ===");
-    constexpr std::uint64_t k = 2; // squares
-    auto macros = factory::waring_macros<1>(k);
-    ExpansionAnalyzer<FreeAbelianMonoid<1>> analyzer(&macros);
-
-    std::println("Macro set: M = {{ m^2 : m >= 1 }} (polynomial density, exponent 1/2)");
-    std::println("Count at length <= 100: {}", macros.count_up_to_length(100));
-    std::println("Count at length <= 10000: {}", macros.count_up_to_length(10000));
-
-    // For Waring with k=2, g(2)=4 (Lagrange), so every integer is sum of <= 4 squares.
-    // Thus f(s) = infinity for s >= 4.
-    std::println("\nVerifying infinite expansion for s >= 4:");
-    for (std::uint64_t s = 1; s <= 8; ++s) {
-        std::uint64_t f = analyzer.expansion_function(s);
-        std::println("f({}) = {}", s, f == std::numeric_limits<std::uint64_t>::max() ? 
-                     "INF (or overflow)" : std::to_string(f));
-    }
-
-    // Demonstrate bounded wrapped length for large macros
-    std::println("\nWrapped length of large macros (should be bounded by g(k)=4):");
-    for (std::uint64_t m : {10, 50, 100, 500}) {
-        FreeAbelianMonoid<1>::Element elem{ m * m };
-        std::uint64_t wlen = analyzer.augmented_length(elem);
-        std::println("m={}, m^2={}, |m^2|_{{G'}} = {}", m, m*m, wlen);
-    }
-}
-
-void demo_theorem6_double_log() {
-    std::println("\n=== Theorem 6: Double-Logarithmic Density (Polynomial Expansion) ===");
-    constexpr std::uint64_t base = 2;
-    auto macros = factory::double_log_macros<1>(base);
-    ExpansionAnalyzer<FreeAbelianMonoid<1>> analyzer(&macros);
-
-    std::println("Macro set: M = {{ 2^(2^j) : j >= 0 }} (double-log density)");
-    std::println("Count at length <= 1000000: {}", macros.count_up_to_length(1000000));
-
-    std::println("\nExpansion function f(s):");
-    for (std::uint64_t s = 1; s <= 20; ++s) {
-        std::uint64_t f = analyzer.expansion_function(s);
-        std::println("f({}) = {}", s, f);
-    }
-    std::println("(Polynomial growth: f(s) ~ s^{{b/(b-1)}} = s^2)");
-}
-
-void demo_theorem7_finite() {
-    std::println("\n=== Theorem 7: Finite Macro Set (Linear Expansion) ===");
-    auto macros = factory::finite_macros<1>(std::vector<std::uint64_t>{5, 12, 25});
-    ExpansionAnalyzer<FreeAbelianMonoid<1>> analyzer(&macros);
-
-    std::println("Macro set: M = {{5, 12, 25}} (finite)");
-    std::println("\nExpansion function f(s):");
-    std::println("{:>4} {:>12} {:>12}", "s", "f(s)", "L*s (L=25)");
-    for (std::uint64_t s = 1; s <= 20; ++s) {
-        std::uint64_t f = analyzer.expansion_function(s);
-        std::println("{:4} {:12} {:12}", s, f, 25 * s);
-    }
-    std::println("(Linear growth: f(s) = Theta(s))");
-}
-
-void demo_theorem4_fn_polynomial() {
-    std::println("\n=== Theorem 4: F_n Polynomial Density (Linear Expansion) ===");
-    // Build a polynomial-density macro set for F_2
-    MacroSet<FreeMonoid<2>> macros;
-    std::uint64_t c = 2, p = 1;
-    for (std::uint64_t ell = 2; ell <= 20; ++ell) {
-        std::uint64_t count = c * std::pow(ell, p);
-        for (std::uint64_t j = 0; j < count && j < 100; ++j) {
-            auto word = FreeMonoid<2>::generator(j % 2);
-            if (ell > 1) word = FreeMonoid<2>::power(word, ell);
-            macros.add_macro(std::format("m_{}_{}", ell, j), word);
-        }
-    }
-
-    ExpansionAnalyzer<FreeMonoid<2>> analyzer(&macros);
-    std::println("Macro set: polynomial density ~ {} * ell^{} for F_2", c, p);
-    std::println("Total macros: {}", macros.count());
-
-    std::println("\nExpansion function f(s) (sampled):");
-    for (std::uint64_t s = 5; s <= 50; s += 5) {
-        std::uint64_t f = analyzer.expansion_function(s);
-        std::println("f({}) ~ {}", s, f);
-    }
-    std::println("(Linear growth expected: f(s) = O(s))");
-}
-
-void demo_metrics() {
-    std::println("\n=== Metrics: Depth, Wrapped Length, Unwrapped Length ===");
-    auto macros = factory::place_notation_macros<1>(10);
-    ExpansionAnalyzer<FreeAbelianMonoid<1>> analyzer(&macros);
-
-    std::println("{:>12} {:>12} {:>12} {:>12}", 
-                 "Element", "|w|_G", "|w|_{G'}", "depth");
-    for (std::uint64_t j = 1; j <= 6; ++j) {
-        std::uint64_t val = math::ipow(10, j);
-        FreeAbelianMonoid<1>::Element elem{ val };
-        std::uint64_t prim = analyzer.primitive_length(elem);
-        std::uint64_t aug = analyzer.augmented_length(elem);
-        std::uint64_t d = analyzer.depth(elem);
-        std::println("{:12} {:12} {:12} {:12}", val, prim, aug, d);
-    }
-}
+}  // namespace
 
 int main() {
-    std::println("Compression is All You Need: Modeling Mathematics");
-    std::println("C++23 Research Library - Algebraic Model Implementation");
-    std::println("======================================================");
+    std::cout << "HM-compress -- v1 (algebraic model)\n";
 
-    demo_theorem1_place_notation();
-    demo_theorem3_waring();
-    demo_theorem6_double_log();
-    demo_theorem7_finite();
-    demo_theorem4_fn_polynomial();
-    demo_metrics();
+    const Length x_max = 2000;
+    const Length s_max = 40;
 
-    std::println("\n======================================================");
-    std::println("All demos completed.");
+    print_header("Theorem 1: place notation (base b=10), exponential expansion");
+    {
+        auto macro_set = macros::place_notation_macros(/*base=*/10, x_max);
+        auto cost = expansion::min_generator_counts(macro_set, x_max);
+        auto f = expansion::expansion_curve(cost, s_max);
+        std::cout << "  s : f_G'(s)\n";
+        for (Length s = 0; s <= s_max; s += 5) {
+            std::cout << "  " << std::setw(2) << s << " : " << f[s] << "\n";
+        }
+        std::cout << "  (expect f_G'(s) ~ Theta(10^(s/9)) per Theorem 1 with n=1,b=10)\n";
+    }
+
+    print_header("Theorem 7: finite macro set {1,...,5}, linear expansion");
+    {
+        auto macro_set = macros::finite_macros(5);
+        auto cost = expansion::min_generator_counts(macro_set, x_max);
+        auto f = expansion::expansion_curve(cost, s_max);
+        std::cout << "  s : f_G'(s)\n";
+        for (Length s = 0; s <= s_max; s += 5) {
+            std::cout << "  " << std::setw(2) << s << " : " << f[s] << "\n";
+        }
+        std::cout << "  (expect f_G'(s) = Theta(s) per Theorem 7)\n";
+    }
+
+    std::cout << "\nRun `examples/` binaries for theorem-specific deep dives, "
+                 "and `ctest` to verify closed-form bounds.\n";
     return 0;
 }
